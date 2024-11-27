@@ -1,0 +1,71 @@
+service: api-reserva
+org: danielcaballeros
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  memorySize: 1024
+  timeout: 30
+  iam:
+    role: arn:aws:iam::397279833444:role/LabRole
+  environment:
+    TABLE_NAME_RESERVA: ${self:provider.stage}-tp_reserva
+
+functions:
+  crearReserva:
+    handler: crearReserva.handler
+    events:
+      - http:
+          path: /reserva
+          method: post
+          cors: true
+
+  obtenerReservaById:
+    handler: obtenerReservaById.handler
+    events:
+      - http:
+          path: /reserva/{tenant_id}/{ID_reserva}
+          method: get
+          cors: true
+
+  obtenerReservas:
+    handler: obtenerReservas.handler
+    events:
+      - http:
+          path: /reservas
+          method: get
+          cors: true
+
+  modificarReserva:
+    handler: modificarReserva.handler
+    events:
+      - http:
+          path: /reserva/{tenant_id}/{ID_reserva}
+          method: put
+          cors: true
+
+  eliminarReserva:
+    handler: eliminarReserva.handler
+    events:
+      - http:
+          path: /reserva
+          method: delete
+          cors: true
+
+resources:
+  Resources:
+    ReservaTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_NAME_RESERVA}
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S
+          - AttributeName: ID_reserva
+            AttributeType: S
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH
+          - AttributeName: ID_reserva
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
