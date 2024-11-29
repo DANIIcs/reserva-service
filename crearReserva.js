@@ -1,56 +1,103 @@
 const AWS = require('aws-sdk');
-const jwt = require('jsonwebtoken');
-const dynamodb = new AWS.DynamoDB.DocumentClient();
-const uuid = require('uuid'); // Para generar ID únicos si es necesario
-
-const RESERVA_TABLE = process.env.TABLE_NAME_RESERVA;
 
 exports.handler = async (event) => {
-    try {
-        const token = event.headers.Authorization.split(' ')[1];
-        const authPayload = await verifyToken(token);
+    console.log(event);
 
-        if (!authPayload) {
+    try {
+        // Validar las variables de entorno
+        if (!process.env.TABLE_NAME_RESERVA || !process.env.LAMBDA_VALIDAR_TOKEN) {
             return {
-                statusCode: 403,
-                body: JSON.stringify({ message: 'Token inválido o expirado' }),
+                statusCode: 500,
+                status: 'Internal Server Error - Variables de entorno no configuradas',
             };
         }
 
-        const data = JSON.parse(event.body);
+        const tablaReservas = process.env.TABLE_NAME_RESERVA;
+        const lambdaToken = process.env.LAMBDA_VALIDAR_TOKEN;
+
+        // Analizar el cuerpo de la solicitud
+        let body = event.body || {};
+        if (typeof body === 'string') {
+            body = JSON.parse(body);
+        }
+
+        // Obtener el tenant_id y otros datos
+        const tenant_id = body.tenant_id;
+        const numero_asientos = body.numero_asientos;
+        const fecha = body.fecha;
+        const monto = body.monto;
+        const metodo = body.metodo;
+        const fecha_pago = body.fecha_pago;
+
+        // Validar que los datos requeridos estén presentes
+        if (!tenant_id || !numero_asientos || !fecha || !monto || !metodo || !fecha_pago) {
+            return {
+                statusCode: 400,
+                status: 'Bad Request - Faltan datos en la solicitud',
+            };
+        }
+
+        // Proteger el Lambda
+        const token = event.headers?.Authorization;
+        if (!token) {
+            return {
+                statusCode: 401,
+                status: 'Unauthorized - Falta el token de autorización',
+            };
+        }
+
+        // Invocar otro Lambda para validar el token
+        const lambda = new AWS.Lambda();
+        const payloadString = JSON.stringify({
+            tenant_id,
+            token,
+        });
+
+        const invokeResponse = await lambda.invoke({
+            FunctionName: lambdaToken,
+            InvocationType: 'RequestResponse',
+            Payload: payloadString,
+        }).promise();
+
+        const response = JSON.parse(invokeResponse.Payload);
+        console.log(response);
+
+        if (response.statusCode === 403) {
+            return {
+                statusCode: 403,
+                status: 'Forbidden - Acceso NO Autorizado',
+            };
+        }
+
+        // Proceso - Guardar la reserva en DynamoDB
+        const dynamodb = new AWS.DynamoDB.DocumentClient();
         const item = {
-            tenant_id: data.tenant_id,
-            ID_reserva: data.ID_reserva || uuid.v4(),
-            numero_asientos: data.numero_asientos,
-            fecha: data.fecha,
-            monto: data.monto,
-            metodo: data.metodo,
-            fecha_pago: data.fecha_pago,
+            tenant_id,
+            ID_reserva: body.ID_reserva || require('uuid').v4(),
+            numero_asientos,
+            fecha,
+            monto,
+            metodo,
+            fecha_pago,
         };
 
         await dynamodb.put({
-            TableName: RESERVA_TABLE,
+            TableName: tablaReservas,
             Item: item,
         }).promise();
 
+        // Salida (json)
         return {
             statusCode: 201,
-            body: JSON.stringify({ message: 'Reserva creada con éxito', reserva: item }),
+            message: 'Reserva creada exitosamente',
+            reserva: item,
         };
     } catch (error) {
+        console.error(`Error inesperado: ${error.message}`);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Error al crear la reserva' }),
+            status: 'Internal Server Error - Error al crear la reserva',
+            error: error.message,
         };
     }
 };
-
-async function verifyToken(token) {
-    try {
-        const secret = process.env.JWT_SECRET;
-        const payload = jwt.verify(token, secret);
-        return payload;
-    } catch (error) {
-        return null;
-    }
-}
