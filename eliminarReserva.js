@@ -11,7 +11,7 @@ exports.handler = async (event) => {
                 status: 'Internal Server Error - Variables de entorno no configuradas',
             };
         }
-
+        
         const tablaReservas = process.env.TABLE_NAME_RESERVA;
         const lambdaToken = process.env.LAMBDA_VALIDAR_TOKEN;
 

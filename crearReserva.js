@@ -12,6 +12,7 @@ exports.handler = async (event) => {
             };
         }
 
+        
         const tablaReservas = process.env.TABLE_NAME_RESERVA;
         const lambdaToken = process.env.LAMBDA_VALIDAR_TOKEN;
 
