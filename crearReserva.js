@@ -22,15 +22,15 @@ exports.handler = async (event) => {
         }
 
         // Obtener el tenant_id y otros datos
-        const tenant_id = body.tenant_id;
+        const tenant_id_prog = body.tenant_id_prog;
+        const ord_prog = body.ord_prog;
         const numero_asientos = body.numero_asientos;
-        const fecha = body.fecha;
+        const ID_reserva = body.fecha;
         const monto = body.monto;
         const metodo = body.metodo;
-        const fecha_pago = body.fecha_pago;
 
         // Validar que los datos requeridos estén presentes
-        if (!tenant_id || !numero_asientos || !fecha || !monto || !metodo || !fecha_pago) {
+        if (!tenant_id_prog || !numero_asientos || !ID_reserva || !monto || !metodo || !ord_prog) {
             return {
                 statusCode: 400,
                 status: 'Bad Request - Faltan datos en la solicitud',
@@ -69,16 +69,19 @@ exports.handler = async (event) => {
             };
         }
 
+        // Concatenar las variables
+        const tenant_id = `${tenant_id_prog}#${ord_prog}`;
+        console.log(resultado);
+
         // Proceso - Guardar la reserva en DynamoDB
         const dynamodb = new AWS.DynamoDB.DocumentClient();
         const item = {
             tenant_id,
-            ID_reserva: body.ID_reserva || require('uuid').v4(),
+            ID_reserva,
             numero_asientos,
             fecha,
             monto,
             metodo,
-            fecha_pago,
         };
 
         await dynamodb.put({
