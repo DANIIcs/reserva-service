@@ -17,7 +17,7 @@ functions:
     handler: crearReserva.handler
     events:
       - http:
-          path: /reserva
+          path: /reserva_crear
           method: post
           cors: true
           integration: lambda
@@ -27,7 +27,7 @@ functions:
     handler: obtenerReservas.handler
     events:
       - http:
-          path: /reservas
+          path: /reservas_obtener
           method: get
           cors: true
           integration: lambda
@@ -36,7 +36,7 @@ functions:
     handler: eliminarReserva.handler
     events:
       - http:
-          path: /reserva
+          path: /reserva_eliminar
           method: delete
           cors: true
           integration: lambda
