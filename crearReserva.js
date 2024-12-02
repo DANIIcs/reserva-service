@@ -26,12 +26,12 @@ exports.handler = async (event) => {
         const tenant_id_prog = body.tenant_id_prog;
         const ord_prog = body.ord_prog;
         const numero_asientos = body.numero_asientos;
-        const ID_reserva = body.fecha;
+        const reserva_ord = new Date().toISOString();
         const monto = body.monto;
         const metodo = body.metodo;
 
         // Validar que los datos requeridos estén presentes
-        if (!tenant_id_prog || !numero_asientos || !ID_reserva || !monto || !metodo || !ord_prog) {
+        if (!tenant_id_prog || !numero_asientos || !reserva_ord || !monto || !metodo || !ord_prog) {
             return {
                 statusCode: 400,
                 status: 'Bad Request - Faltan datos en la solicitud',
@@ -46,6 +46,9 @@ exports.handler = async (event) => {
                 status: 'Unauthorized - Falta el token de autorización',
             };
         }
+
+        const tenant_id = tenant_id_prog.split('#')[0];
+        console.log(tenant_id)
 
         // Invocar otro Lambda para validar el token
         const lambda = new AWS.Lambda();
@@ -71,16 +74,15 @@ exports.handler = async (event) => {
         }
 
         // Concatenar las variables
-        const tenant_id = `${tenant_id_prog}#${ord_prog}`;
-        console.log(resultado);
+        const tenant_reserva_id = `${tenant_id_prog}#${ord_prog}`;
+        console.log(tenant_id);
 
         // Proceso - Guardar la reserva en DynamoDB
         const dynamodb = new AWS.DynamoDB.DocumentClient();
         const item = {
-            tenant_id,
-            ID_reserva,
+            tenant_reserva_id,
+            reserva_ord,
             numero_asientos,
-            fecha,
             monto,
             metodo,
         };
