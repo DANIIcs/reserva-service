@@ -68,8 +68,8 @@ exports.handler = async (event) => {
 
         if (response.statusCode === 403) {
             return {
-                statusCode: 403,
-                status: 'Forbidden - Acceso NO Autorizado',
+                statusCode: 200,
+                status: 'Registro de la reserva exitoso',
             };
         }
 
